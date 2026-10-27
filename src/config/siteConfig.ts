@@ -42,13 +42,13 @@ const pages = resolvePageToggles({
 
 export const siteConfig: SiteConfig = {
 	// 站点标题
-	title: "Firefly",
+	title: "sterfu_nyの小窝",
 
 	// 站点副标题
 	subtitle: "Demo site",
 
 	// 站点 URL
-	site_url: "https://firefly.cuteleaf.cn",
+	site_url: "https://blog.sterfuny.dpdns.org",
 
 	// 站点描述
 	description:
@@ -57,12 +57,13 @@ export const siteConfig: SiteConfig = {
 	// 站点关键词
 	keywords: [
 		"Firefly",
-		"Fuwari",
-		"Astro",
-		"ACGN",
+    "sterfuny",
+		// "Fuwari",
+		// "Astro",
+		// "ACGN",
 		"博客",
-		"技术博客",
-		"静态博客",
+		// "技术博客",
+		// "静态博客",
 	],
 
 	// 主题色
@@ -117,7 +118,7 @@ export const siteConfig: SiteConfig = {
 			alt: "🍀",
 		},
 		// 导航栏标题
-		title: "Firefly Blog",
+		title: "sterfu_ny Blog",
 		// 全宽导航栏，导航栏是否占满屏幕宽度
 		widthFull: false,
 		// 导航菜单对齐方式，left：左对齐，center：居中
@@ -132,7 +133,7 @@ export const siteConfig: SiteConfig = {
 	},
 
 	// 站点开始日期，用于统计运行天数
-	siteStartDate: "2025-01-01",
+	siteStartDate: "2026-10-26",
 
 	// 站点时区（IANA 时区字符串），用于格式化bangumi、rss里的构建日期时间等等..
 	// 示例："Asia/Shanghai", "UTC", 如果为空，则按照构建服务器的时区进行时区转换
@@ -189,7 +190,7 @@ export const siteConfig: SiteConfig = {
 			// 标签数量，设为 0 则不限制
 			tagCount: 3,
 			// 是否显示字数
-			showWords: false,
+			showWords: true,
 			// 是否显示阅读时间
 			showReadingTime: false,
 		},
@@ -235,7 +236,7 @@ export const siteConfig: SiteConfig = {
 		// 文章页底部的"上次编辑时间"卡片开关
 		showLastModified: true,
 		// 文章过期阈值（天数），超过此天数才显示"上次编辑"卡片
-		outdatedThreshold: 30,
+		outdatedThreshold: 60,
 		// 是否显示文章页的分享按钮
 		share: true,
 		// 是否显示上一篇/下一篇文章导航
@@ -251,7 +252,7 @@ export const siteConfig: SiteConfig = {
 			// 总开关：false 则不显示按钮
 			enable: true,
 			// 进入文章页是否默认开启沉浸阅读
-			defaultOn: false,
+			defaultOn: true,
 			// 沉浸阅读中是否显示目录栏
 			tocEnabled: true,
 			// 目录栏位置："left" | "right"
