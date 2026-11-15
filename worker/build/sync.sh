@@ -1,3 +1,6 @@
+git remote set-url origin \
+"https://sterfuny:${GITHUB_TOKEN}@github.com/sterfuny/Firefly.git" && \
+
 node worker/build/pull-r2.js && \
 
 git config user.name "Cloudflare Build Bot" && \
