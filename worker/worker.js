@@ -9,7 +9,7 @@ export default {
       });
 
       if (!res.ok) {
-        throw new Error(`触发构建失败，状态码: ${res.status}`);
+        throw new Error(`build error: ${res.status}`);
       }
 
       console.log("trigger hook");
