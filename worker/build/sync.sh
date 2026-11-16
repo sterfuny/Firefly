@@ -1,24 +1,43 @@
+#!/usr/bin/env bash
+
 git remote set-url origin \
 "https://sterfuny:${GITHUB_TOKEN}@github.com/sterfuny/Firefly.git"
 git config user.name "get1Mster"
 git config user.email "97845248+get1Mster@users.noreply.github.com"
-CURRENT_BRANCH=${WORKERS_CI_BRANCH};
+
+CURRENT_BRANCH="${WORKERS_CI_BRANCH:-master}"
+echo "Current Triggered Branch: ${CURRENT_BRANCH}"
 
 if git ls-remote --exit-code --heads origin content; then
-  echo "pull content branch, merge ${CURRENT_BRANCH} and content..."
-  git fetch origin content:content
-  git checkout content
-  # 把主分支最新代码合并进 content
-  git merge ${CURRENT_BRANCH} -X theirs
+  echo "Pulling content branch, merging origin/${CURRENT_BRANCH} into content..."
+  
+  # 仅 fetch content 分支
+  git fetch origin content
+  # 强制切出并重置本地 content 跟踪远端 content（避免 fetch 冲突）
+  git checkout -B content origin/content
+  
+  # 确保远端主分支存在后再合并，使用 origin/${CURRENT_BRANCH}
+  if git rev-parse --verify "origin/${CURRENT_BRANCH}" >/dev/null 2>&1; then
+    echo "Merging origin/${CURRENT_BRANCH}..."
+    git merge "origin/${CURRENT_BRANCH}" -X theirs
+  else
+    echo "Warning: origin/${CURRENT_BRANCH} not found, skipping merge."
+  fi
 else
-  echo "init content branch..."
+  echo "Initializing content branch..."
   git checkout -b content
-fi && \
+fi
 
-node worker/build/pull-r2.js && \
-pnpm build && \
+echo "Running pull-r2..."
+node worker/build/pull-r2.js
 
-git add src/content && \
-git commit -m "Sync R2 (Build Verified)"
+echo "Running build..."
+pnpm build
 
-git push origin content
+echo "Committing changes..."
+git add src/content
+# 如果没有内容变化，git commit 会报错退出
+git commit -m "Sync R2 (Build Verified)" || echo "No changes to commit"
+
+echo "Pushing to origin content..."
+git push origin content || echo "Push failed, continuing deployment..."
