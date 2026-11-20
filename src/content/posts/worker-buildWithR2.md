@@ -12,19 +12,15 @@ tags:
 category: 指南
 draft: false
 ---
-# 基于 Cloudflare 的自动化静态内容发布
+在现代静态站点（如 Astro、VitePress 等）的开发流程中，实现内容与代码的解耦、自动化构建以及高效的版本备份，是提升工程化水平的重要环节。
 
-在构建现代静态站点（如 Astro、VitePress、Next.js 等）时，我们经常面临这样一个需求：**内容需要频繁更新，且希望将内容存储与代码逻辑分离**。
+本文将详细介绍如何利用 Cloudflare Serverless 生态构建这样一套流水线：以 **R2** 作为对象存储，通过 **Queue** 与 **Worker** 触发构建，并在 **Workers CI** 阶段利用 Git 的底层机制实现极其轻量、高效的增量备份。
 
-Cloudflare 提供了一套极佳的 Serverless 方案：使用 **R2** 作为无出口费用的对象存储，利用 **Worker** 作为触发器，结合 **Cloudflare Pages/Workers Builds** 进行自动化构建，最后通过 **Git** 实现内容备份。
-
-本文将详细拆解这套架构的实现过程，并附上生产环境中踩坑后的终极解决方案。
-
-## 架构流程图
+## 架构设计图
 
 ```mermaid
 graph TD
-    A[内容管理端/本地] -->|上传/更新| B[R2 存储桶]
+    A[内容源/本地] -->|上传/更新| B[R2 存储桶]
     B -->|事件通知| C[Cloudflare Queue]
     C -->|触发| D[Consumer Worker]
     D -->|POST| E[Deploy Hook URL]
@@ -33,7 +29,7 @@ graph TD
     F -->|拉取 R2 最新内容| G[构建产物]
     G --> H[部署上线]
     
-    F -.->|提交最新内容| I[Git content 分支 / 自动备份]
+    F -.->|Git Reset --soft 智能备份| I[Git content 分支]
     
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
     classDef highlight fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
@@ -42,134 +38,104 @@ graph TD
 
 ---
 
-## 核心步骤实现
+## 一、 基础模块实现
 
-### 1. 内容存储：Cloudflare R2
-将你的 Markdown 文件、图片或其他静态资源存入 R2 存储桶中。R2 最大的优势是**零出口流量费**，非常适合作为静态站点的源数据仓库。
+### 1. R2 内容存储
+使用 Cloudflare R2 作为静态资源（Markdown、图片等）的源数据仓库，其核心优势在于零出口流量费。在 CI 构建阶段，通过 Node.js 脚本（如 AWS SDK）连接 R2，并将所需的变量（`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET_NAME` 等）注入到构建环境中。
 
-为了方便 CI 拉取，你需要配置好 R2 的 API Token，并在 CI 环境中注入 `R2_ACCESS_KEY_ID` 和 `R2_SECRET_ACCESS_KEY`。
-
-### 2. 事件触发：Cloudflare Queues
-由于直接通过 R2 触发 Webhook 容易因为高并发导致请求超载，最佳实践是使用 Cloudflare Queues 进行消息缓冲。
-
-在 `wrangler.jsonc` 中配置队列消费者：
-
-```jsonc
-{
-  "queues": {
-    "consumers": [
-      {
-        "queue": "r2-content-build",
-        "max_batch_size": 10,
-        "max_batch_timeout": 5
-      }
-    ]
-  }
-}
-```
-
-### 3. 触发构建：Queue Consumer Worker
-编写一个 Worker 来消费队列消息，并调用 Cloudflare 提供的 Deploy Hook。
-
-> **⚠️ 避坑指南：**
-> 1. 确保 `DEPLOY_HOOK_URL` 已在 Worker 的环境变量中正确配置。
-> 2. Cloudflare 的 Deploy Hook 有防抖/去重机制（如果上一次构建还在排队，新的请求会返回同一个 build_uuid），所以无需担心短时间内多次触发。
+### 2. Queue 与 Worker 构建触发
+为避免直接通过 R2 的高频事件调用 Webhook 导致请求堆积，引入 Cloudflare Queues 进行削峰填谷。Worker 消费队列消息，并发起构建请求。
 
 ```javascript
 export default {
   async queue(batch, env, ctx) {
-    console.log(`Received ${batch.messages.length} R2 update notifications.`);
-
     try {
       const res = await fetch(env.DEPLOY_HOOK_URL, { method: "POST" });
-
-      if (!res.ok) {
-        throw new Error(`Build hook failed with status: ${res.status}`);
-      }
-      
-      console.log("Deploy hook triggered successfully.");
+      if (!res.ok) throw new Error(`Hook failed: ${res.status}`);
       for (const msg of batch.messages) msg.ack();
-      
     } catch (err) {
-      console.error("Failed to trigger hook:", err.message);
-      // 失败后延迟重试
-      for (const msg of batch.messages) {
-        msg.retry({ delaySeconds: 60 });
-      }
+      console.error("Trigger failed:", err.message);
+      for (const msg of batch.messages) msg.retry({ delaySeconds: 60 });
     }
   }
 };
 ```
 
-### 4. 自动化构建与 Git 备份：CI 脚本 (`sync.sh`)
+---
 
-当 Deploy Hook 触发 Cloudflare 构建时，CI 环境会执行 `sync.sh` 脚本。在这个阶段，我们需要完成三件事：**拉取 R2 内容** -> **合并主分支代码** -> **构建并推送到 Git 备份分支**。
+## 二、 Git 增量备份策略
 
-> **⚠️ 避坑指南（血泪史）：**
-> 1. **CI 环境是浅克隆**：本地往往没有 `master` 分支，必须使用 `origin/${CURRENT_BRANCH}` 进行合并。
-> 2. **Detached HEAD**：CI 默认不处于任何分支上，`git branch --show-current` 结果为空，需使用环境变量 `WORKERS_CI_BRANCH` 兜底。
-> 3. **工作区冲突**：直接 `fetch` 到当前检出的分支会报错，使用 `git checkout -B` 强制重置是更稳妥的做法。
+在 CI 流水线中实现自动备份时，通常会面临两个技术难点：
+1. **CI 环境的浅克隆限制**：环境默认不包含完整历史，直接进行分支合并（Merge）容易产生引用丢失或历史断代。
+2. **仓库体积膨胀**：如果主分支（master）的初始提交（Root Commit）包含了大量文件，而备份分支每次初始化都创建孤儿提交，将导致 `.git` 目录无限膨胀。
 
-下面是修改后的终极 `sync.sh` 脚本：
+### 核心思路：利用 Root Commit 与 `reset --soft`
+为了保持备份分支 `content` 的纯粹与轻量，策略如下：
+*   **首次初始化**：解除 CI 环境的浅克隆，找到主分支的 Root Commit（最庞大的初始提交）。利用 `git reset --soft` 将 HEAD 指针移动至此，保留当前工作区的最新文件，然后直接提交。这样备份分支的历史直接挂载在 Root Commit 下，后续全为极小的增量。
+*   **常规更新**：拉取 `content` 分支，同样利用 `git reset --soft` 将 HEAD 移至远端 `content` 的最新提交，工作区保留当前 CI 拉取的最新主分支代码，随后直接 Commit 并强推。
+
+### 自动化脚本 `sync.sh`
 
 ```bash
 #!/usr/bin/env bash
-set -e # 遇到错误立即退出（除了部分允许容错的命令）
+set -e
 
-# 1. 配置 Git 凭证 (用于后续 Push 备份)
-git remote set-url origin "https://<username>:${GITHUB_TOKEN}@github.com/<user>/<repo>.git"
-git config user.name "Deploy Bot"
-git config user.email "bot@example.com"
+# 1. 初始化 Git 配置
+git remote set-url origin "https://sterfuny:${GITHUB_TOKEN}@github.com/sterfuny/Firefly.git"
+git config user.name "cloudflare[bot]"
+git config user.email "cloudflare[bot]@users.noreply.github.com"
 
-# 2. 获取当前触发分支（防止 CI 环境为 detached HEAD）
-CURRENT_BRANCH="${WORKERS_CI_BRANCH:-master}"
-
-if git ls-remote --exit-code --heads origin content; then
-  echo "Pulling content branch, merging origin/${CURRENT_BRANCH} into content..."
-  
+if git ls-remote --exit-code --heads origin content > /dev/null 2>&1; then
+  # ─── 常规更新：远端已存在 content 分支 ───
+  echo "Updating existing content branch..."
   git fetch origin content
-  # 强制新建/重置本地 content 分支并切换到该分支
-  git checkout -B content origin/content
   
-  # 在 CI 中，本地没有 master，必须合并 origin/master
-  if git rev-parse --verify "origin/${CURRENT_BRANCH}" >/dev/null 2>&1; then
-    git merge "origin/${CURRENT_BRANCH}" -X theirs
-  fi
+  # 将 HEAD 移至 content 最新提交，保留当前工作区最新代码
+  git reset --soft origin/content
+  git checkout -B content
+  
 else
-  echo "Initializing content branch..."
-  git checkout -b content
+  # ─── 首次初始化：远端无 content 分支 ───
+  echo "Initializing content branch from ROOT commit..."
+  
+  # 解除浅克隆以获取完整历史，寻找起点
+  git fetch --unshallow || git fetch --depth=1000000
+  
+  # 查找根提交 (最旧的一个提交)
+  ROOT_COMMIT=$(git rev-list --max-parents=0 HEAD | tail -n 1)
+  echo "Root commit found: ${ROOT_COMMIT}"
+  
+  # 将 HEAD 移至根提交，保留当前工作区最新代码
+  git reset --soft "${ROOT_COMMIT}"
+  git checkout -B content
 fi
 
-# 3. 从 R2 拉取最新内容
+# 2. 内容拉取与构建
+echo "Running pull-r2..."
 node worker/build/pull-r2.js
 
-# 4. 执行项目构建 (确保配置的 assets.directory 与此处产物对应，如 dist)
+echo "Running build..."
 pnpm build
 
-# 5. 将 R2 最新内容提交并备份到 Git 的 content 分支
-git add src/content
-# 如果没有变动，不报错
-git commit -m "Auto-sync R2 content (Build Verified) [skip ci]" || echo "No changes to commit"
+# 3. 生成东八区时间戳
+CURRENT_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S (UTC+8)')
 
-# 推送备份
-git push origin content || echo "Push failed, continuing deployment..."
+# 4. 提交与推送备份
+echo "Committing changes..."
+git add src/content
+git commit -m "Sync R2 at ${CURRENT_TIME} (Build Verified)" || echo "No changes to commit"
+
+echo "Pushing to origin content..."
+git push -f origin content || echo "Push failed, continuing deployment..."
+
+echo "Done!"
 ```
 
----
-
-## 补充优化与部署检查清单
-
-### 1. 解决 `dist` 目录不存在报错
-如果在 `wrangler.jsonc` 中配置了 `"assets": { "directory": "./dist" }`，但在部署时抛出 `[ERROR] The directory specified by the "assets.directory" field in your configuration file does not exist`：
-* 检查框架的默认构建输出目录。例如 Astro 是 `dist`，Next.js (静态导出) 是 `out`，Nuxt 是 `.output/public`。
-* 确保 `pnpm build` 在 `sync.sh` 中正确执行且未中断。
-
-### 2. 处理 Wrangler 警告
-如果在部署时看到类似 `Unexpected fields found in observability field: "issue_detection"` 的警告，只需去 `wrangler.jsonc` 中将过时的字段删除即可，这不影响核心部署。
-
-### 3. CI 中的 `[skip ci]` 后缀
-在提交备份记录时，强烈建议在 commit message 中加上 `[skip ci]` 或 `[no ci]`（取决于你使用的 Git 平台）。这样可以避免 CI 机器人推送备份内容到 Git 后，再次触发新的构建流水线，造成死循环。
+### 方案优势分析
+1. **空间利用率最大化**：首次初始化利用 `reset --soft` 指向已存在的 Root Commit，Git 底层不会重复存储其包含的大文件。后续更新基于同一条历史线追加，仅记录 Diff。
+2. **工作区状态隔离**：所有操作均基于 `reset --soft`，仅移动 Git 指针，绝不覆写磁盘上的工作文件，确保了构建所用的代码始终是 CI 最新拉取的版本。
+3. **规避了合并冲突**：摒弃了传统 CI 脚本中脆弱的 `git merge` 操作，依靠强制推送（`push -f`）保持分支的线性与整洁。
+4. **时间记录明确**：利用系统环境变量 `TZ='Asia/Shanghai'` 获取准确的东八区时间，便于审计每次备份的触发时间。
 
 ## 总结
-
-这套架构将**内容（R2）**、**代码（Git 主分支）**、**构建逻辑（CI）** 和**备份（Git content 分支）**完美解耦。你只需向 R2 上传文件，剩下的内容同步、代码合并、静态构建、版本备份都将全自动无缝完成，同时还能享受 Cloudflare 极低的成本和高并发能力。
+该方案通过 R2 与 Cloudflare 队列体系实现了触发与构建的解耦。同时，在 Git 自动化方面，巧妙运用 `git reset --soft` 机制，在规避 CI 浅克隆限制的同时，解决了初始大文件导致的仓库体积膨胀问题，实现了高效、安全的增量备份。
