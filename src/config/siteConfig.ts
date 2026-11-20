@@ -13,7 +13,7 @@ const pages = resolvePageToggles({
 	// 友链页面开关
 	friends: true,
 	// 留言板页面开关，需要配置评论系统
-	guestbook: true,
+	guestbook: false,
 
 	// ── 我的 (My) ──────────────────────────────────
 
@@ -42,27 +42,28 @@ const pages = resolvePageToggles({
 
 export const siteConfig: SiteConfig = {
 	// 站点标题
-	title: "Firefly",
+	title: "sterfu_ny 的博客",
 
 	// 站点副标题
-	subtitle: "Demo site",
+	subtitle: "记录技术与生活的点滴",
 
 	// 站点 URL
-	site_url: "https://firefly.cuteleaf.cn",
+	site_url: "https://blog.sterfuny.dpdns.org",
 
 	// 站点描述
 	description:
-		"Firefly 是一款基于 Astro 框架和 Fuwari 模板开发的清新美观且现代化个人博客主题模板，专为技术爱好者和内容创作者设计。该主题融合了现代 Web 技术栈，提供了丰富的功能模块和高度可定制的界面，让您能够轻松打造出专业且美观的个人博客网站。",
+		"这里记录着关于全栈开发、Cloudflare 生态、前端技术、家里云运维以及个人生活的点滴。追求性能，喜欢探索新技术，希望能在博客空间里，分享自己的思考和见解。",
 
 	// 站点关键词
 	keywords: [
 		"Firefly",
-		"Fuwari",
-		"Astro",
-		"ACGN",
+		"sterfuny",
+		// "Fuwari",
+		// "Astro",
+		// "ACGN",
 		"博客",
-		"技术博客",
-		"静态博客",
+		// "技术博客",
+		// "静态博客",
 	],
 
 	// 主题色
@@ -117,7 +118,7 @@ export const siteConfig: SiteConfig = {
 			alt: "🍀",
 		},
 		// 导航栏标题
-		title: "Firefly Blog",
+		title: "sterfu_ny's Blog",
 		// 全宽导航栏，导航栏是否占满屏幕宽度
 		widthFull: false,
 		// 导航菜单对齐方式，left：左对齐，center：居中
@@ -132,7 +133,7 @@ export const siteConfig: SiteConfig = {
 	},
 
 	// 站点开始日期，用于统计运行天数
-	siteStartDate: "2025-01-01",
+	siteStartDate: "2026-10-26",
 
 	// 站点时区（IANA 时区字符串），用于格式化bangumi、rss里的构建日期时间等等..
 	// 示例："Asia/Shanghai", "UTC", 如果为空，则按照构建服务器的时区进行时区转换
@@ -167,7 +168,7 @@ export const siteConfig: SiteConfig = {
 		// 网格模式的封面固定在卡片顶部，不受此项影响
 		coverPosition: "right",
 		// 文章简介显示行数，设为 0 则不截断
-		descriptionLines: 2,
+		descriptionLines: 0,
 		// 文章卡片底部统计和发布日期是否显示图标
 		showStatsIcons: true,
 		// 标签显示位置
@@ -189,7 +190,7 @@ export const siteConfig: SiteConfig = {
 			// 标签数量，设为 0 则不限制
 			tagCount: 3,
 			// 是否显示字数
-			showWords: false,
+			showWords: true,
 			// 是否显示阅读时间
 			showReadingTime: false,
 		},
@@ -227,7 +228,7 @@ export const siteConfig: SiteConfig = {
 		// 提醒框（Admonitions）配置，修改后需要重启开发服务器才能生效
 		// 主题：'github' | 'obsidian' | 'vitepress' | 'docusaurus'，每个主题风格和语法不同，可根据喜好选择
 		rehypeCallouts: {
-			theme: "github",
+			theme: "obsidian",
 			// 是否启用兼容 Python-Markdown 风格的 admonition 语法（!!!和???语法）
 			// 注意：只有 theme 配置成 obsidian 主题才能基本支持这些语法，其他主题会有样式问题或不兼容的情况
 			enablePythonMarkdownAdmonitions: false,
@@ -235,7 +236,7 @@ export const siteConfig: SiteConfig = {
 		// 文章页底部的"上次编辑时间"卡片开关
 		showLastModified: true,
 		// 文章过期阈值（天数），超过此天数才显示"上次编辑"卡片
-		outdatedThreshold: 30,
+		outdatedThreshold: 60,
 		// 是否显示文章页的分享按钮
 		share: true,
 		// 是否显示上一篇/下一篇文章导航
@@ -243,7 +244,7 @@ export const siteConfig: SiteConfig = {
 		// 是否显示相关文章推荐
 		relatedPosts: true,
 		// 是否显示随机文章推荐
-		randomPosts: true,
+		randomPosts: false,
 		// OpenGraph图片功能，注意开启后要渲染很长时间，不建议本地调试的时候开启
 		generateOgImages: true,
 		// 沉浸阅读配置：电脑端文章详情页右下角按钮，进入后只留文章卡片+左侧目录
@@ -251,7 +252,7 @@ export const siteConfig: SiteConfig = {
 			// 总开关：false 则不显示按钮
 			enable: true,
 			// 进入文章页是否默认开启沉浸阅读
-			defaultOn: false,
+			defaultOn: true,
 			// 沉浸阅读中是否显示目录栏
 			tocEnabled: true,
 			// 目录栏位置："left" | "right"
@@ -262,7 +263,7 @@ export const siteConfig: SiteConfig = {
 	// ── Bilibili配置 ──────────────────────────────────
 	bilibili: {
 		// 你的 Bilibili 用户 UID
-		uid: "38932988",
+		uid: "1145205397",
 	},
 
 	// ── 番组计划bangumi配置 ──────────────────────────────────
@@ -312,7 +313,7 @@ export const siteConfig: SiteConfig = {
 	// ── MyAnimeList配置 ──────────────────────────────────
 	mal: {
 		// MyAnimeList 用户名（列表需为公开状态，私密列表无法读取）
-		username: "cuteleaf",
+		username: "sterfuny",
 		// MyAnimeList Client ID，在 https://myanimelist.net/apiconfig 注册免费应用后获取
 		clientId: "	0ef34371450f9c6c809deaadec6aa8f3",
 		// MAL API 地址

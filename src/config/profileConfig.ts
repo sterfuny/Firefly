@@ -6,13 +6,14 @@ export const profileConfig: ProfileConfig = {
 	// 1. public 目录（以 "/" 开头，不优化）："/assets/images/avatar.webp"
 	// 2. src 目录（不以 "/" 开头，自动优化但会增加构建时间，推荐）："assets/images/avatar.webp"
 	// 3. 远程 URL："https://example.com/avatar.jpg"
-	avatar: "assets/images/avatar.avif",
+	// avatar: "assets/images/avatar.avif",
+	avatar: "assets/images/avatar.png",
 
 	// 名字
-	name: "XiaYe",
+	name: "sterfu_ny",
 
 	// 个人签名
-	bio: "Hello, I'm XiaYe.",
+	bio: "沉淀需要时间，自由贵在无限可能",
 
 	// 链接配置
 	// 已经预装的图标集：fa7-brands，fa7-regular，fa7-solid，material-symbols，simple-icons
@@ -24,26 +25,38 @@ export const profileConfig: ProfileConfig = {
 		{
 			name: "GitHub",
 			icon: "fa7-brands:github",
-			url: "https://github.com/CuteLeaf",
+			url: "https://github.com/sterfuny",
 			showName: false,
 		},
 		{
 			name: "Email",
 			icon: "fa7-solid:envelope",
-			url: "mailto:xiaye@msn.com",
+			url: "mailto:sterfu_ny@126.com",
 			showName: false,
 		},
-		{
-			name: "RSS",
-			icon: "fa7-solid:rss",
-			url: "/rss/",
+    {
+      name: "osu!",
+      icon: "simple-icons:osu",
+      url: "https://osu.ppy.sh/users/sterfuny",
 			showName: false,
-		},
-		{
-			name: "Atom",
-			icon: "fa7-solid:atom",
-			url: "/atom/",
+    },
+    {
+      name: "OKX",
+      icon: "simple-icons:okx",
+      url: "https://oyidl.co/ul/dNBhKgB",
 			showName: false,
-		},
+    },
+		// {
+		// 	name: "RSS",
+		// 	icon: "fa7-solid:rss",
+		// 	url: "/rss/",
+		// 	showName: false,
+		// },
+		// {
+		// 	name: "Atom",
+		// 	icon: "fa7-solid:atom",
+		// 	url: "/atom/",
+		// 	showName: false,
+		// },
 	],
 };
