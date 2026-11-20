@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
+set -e
 
 git remote set-url origin \
 "https://sterfuny:${GITHUB_TOKEN}@github.com/sterfuny/Firefly.git"
-git config user.name "get1Mster"
-git config user.email "97845248+get1Mster@users.noreply.github.com"
+git config user.name "cloudflare[bot]"
+git config user.email ""
 
-CURRENT_BRANCH="${WORKERS_CI_BRANCH:-master}"
+CURRENT_BRANCH="${WORKERS_CI_BRANCH:-main}"
 echo "Current Triggered Branch: ${CURRENT_BRANCH}"
 
 if git ls-remote --exit-code --heads origin content; then
   echo "Pulling content branch, merging origin/${CURRENT_BRANCH} into content..."
   
-  # 仅 fetch content 分支
+  # fetch 分支
   git fetch origin content
+  git fetch origin ${CURRENT_BRANCH}
   # 强制切出并重置本地 content 跟踪远端 content（避免 fetch 冲突）
   git checkout -B content origin/content
   
@@ -40,4 +42,4 @@ git add src/content
 git commit -m "Sync R2 (Build Verified)" || echo "No changes to commit"
 
 echo "Pushing to origin content..."
-git push origin content || echo "Push failed, continuing deployment..."
+git push -f origin content || echo "Push failed, continuing deployment..."
