@@ -1,18 +1,17 @@
 ---
 title: 基于 Cloudflare 的自动化静态内容发布
 published: 2026-11-16
-updated: 2026-11-16
-description: 平时在R2保存了构建静态资源时需要的内容，在平台同时依赖R2和GitHub获得更快更及时的构建
+updated: 2026-11-23
+description: 通过R2保存构建静态资源时需要的内容，在Cloudflare平台同时依赖Queue和GitHub获得更快更及时的构建
 tags:
   - Cloudflare
   - R2
   - worker
   - git
-  - GitHub
 category: 指南
 draft: false
 ---
-在现代静态站点（如 Astro、VitePress 等）的开发流程中，实现内容与代码的解耦、自动化构建以及高效的版本备份，是提升工程化水平的重要环节。
+在现代静态站点的开发流程中，实现内容与代码的解耦、自动化构建以及高效的版本备份，是提升工程化水平的重要环节。
 
 本文将详细介绍如何利用 Cloudflare Serverless 生态构建这样一套流水线：以 **R2** 作为对象存储，通过 **Queue** 与 **Worker** 触发构建，并在 **Workers CI** 阶段利用 Git 的底层机制实现极其轻量、高效的增量备份。
 
@@ -20,28 +19,30 @@ draft: false
 
 ```mermaid
 graph TD
-    A[内容源/本地] -->|上传/更新| B[R2 存储桶]
-    B -->|事件通知| C[Cloudflare Queue]
-    C -->|触发| D[Consumer Worker]
-    D -->|POST| E[Deploy Hook URL]
-    E -->|启动构建| F[Cloudflare CI]
+    A -->|上传| B
+    B -->|生产| queue
+    queue[CF Queue] -->|消费| D
+    D -->|POST| E
+    E -->|构建事务| F[dist]
+    F -->|deploy| G[CF]
     
-    F -->|拉取 R2 最新内容| G[构建产物]
-    G --> H[部署上线]
+    E -.->|git reset --soft| I[content breach]
     
-    F -.->|Git Reset --soft 智能备份| I[Git content 分支]
+    A[content]
+    B[R2 bucket]
+    D[CF Worker]
+    E[CF CI]
     
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:1px;
-    classDef highlight fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    class F highlight;
+    src --> |push| git
+    git[GitHub] -->|POST| E
 ```
 
 ---
 
-## 一、 基础模块实现
+## Cloudflare准备
 
 ### 1. R2 内容存储
-使用 Cloudflare R2 作为静态资源（Markdown、图片等）的源数据仓库，其核心优势在于零出口流量费。在 CI 构建阶段，通过 Node.js 脚本（如 AWS SDK）连接 R2，并将所需的变量（`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET_NAME` 等）注入到构建环境中。
+使用 Cloudflare R2 作为静态资源（Markdown、图片等）的源数据仓库。在 CI 构建阶段，通过 Node.js 脚本（如 AWS SDK）连接 R2，并将所需的变量（`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`、`R2_BUCKET_NAME` 等）注入到构建环境中。
 
 ### 2. Queue 与 Worker 构建触发
 为避免直接通过 R2 的高频事件调用 Webhook 导致请求堆积，引入 Cloudflare Queues 进行削峰填谷。Worker 消费队列消息，并发起构建请求。
@@ -74,7 +75,10 @@ export default {
 *   **首次初始化**：解除 CI 环境的浅克隆，找到主分支的 Root Commit（最庞大的初始提交）。利用 `git reset --soft` 将 HEAD 指针移动至此，保留当前工作区的最新文件，然后直接提交。这样备份分支的历史直接挂载在 Root Commit 下，后续全为极小的增量。
 *   **常规更新**：拉取 `content` 分支，同样利用 `git reset --soft` 将 HEAD 移至远端 `content` 的最新提交，工作区保留当前 CI 拉取的最新主分支代码，随后直接 Commit 并强推。
 
-### 自动化脚本 `sync.sh`
+> [!tip]
+> 初始化时假设主分支是压缩的模板提交，根提交后的改动较少时建议采用，否则以最新的提交为新分支的根最好
+
+### 构建脚本
 
 ```bash
 #!/usr/bin/env bash
@@ -131,10 +135,10 @@ git push -f origin content || echo "Push failed, continuing deployment..."
 echo "Done!"
 ```
 
-### 方案优势分析
-1. **空间利用率最大化**：首次初始化利用 `reset --soft` 指向已存在的 Root Commit，Git 底层不会重复存储其包含的大文件。后续更新基于同一条历史线追加，仅记录 Diff。
-2. **工作区状态隔离**：所有操作均基于 `reset --soft`，仅移动 Git 指针，绝不覆写磁盘上的工作文件，确保了构建所用的代码始终是 CI 最新拉取的版本。
-3. **规避了合并冲突**：摒弃了传统 CI 脚本中脆弱的 `git merge` 操作，依靠强制推送（`push -f`）保持分支的线性与整洁。
+### 方案分析
+1. **防止大量重复 diff**：首次初始化利用 `reset --soft` 指向已存在的 Root Commit，Git 底层不会重复存储其包含的大文件。后续更新基于同一条历史线追加，也方便复盘部署间的不同更改。
+2. **工作区状态隔离**：`reset --soft` 移动了 Git 指针，还原也不会冲突工作区，确保构建所用的代码是 CI 拉取的 git 提交和内容。
+3. **规避合并冲突**：摒弃了脆弱的 `git merge` 操作，依靠强制推送 `push -f` 保证分支流程不出现错误。
 4. **时间记录明确**：利用系统环境变量 `TZ='Asia/Shanghai'` 获取准确的东八区时间，便于审计每次备份的触发时间。
 
 ## 总结
