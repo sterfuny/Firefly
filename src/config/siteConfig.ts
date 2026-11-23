@@ -37,15 +37,15 @@ const pages = resolvePageToggles({
 	// ── 关于 (About) ──────────────────────────────────
 
 	// 打赏页面开关
-	sponsor: true,
+	sponsor: false,
 });
 
 export const siteConfig: SiteConfig = {
 	// 站点标题
-	title: "sterfu_ny 的博客",
+	title: "sterfu_ny's blog",
 
 	// 站点副标题
-	subtitle: "记录技术与生活的点滴",
+	subtitle: "轻量生活",
 
 	// 站点 URL
 	site_url: "https://blog.sterfuny.dpdns.org",
@@ -207,7 +207,7 @@ export const siteConfig: SiteConfig = {
 		// 网格布局配置，仅在 defaultMode 为 "grid" 或允许切换布局时生效
 		grid: {
 			// 是否开启瀑布流布局，同时有封面图和无封面图的混合文章推荐开启
-			masonry: false,
+			masonry: true,
 			// 网格模式卡片最小宽度(px)，浏览器根据容器宽度自动计算列数
 			columnWidth: 320,
 			// 网格模式封面是否撑满卡片贴边
@@ -231,7 +231,7 @@ export const siteConfig: SiteConfig = {
 			theme: "obsidian",
 			// 是否启用兼容 Python-Markdown 风格的 admonition 语法（!!!和???语法）
 			// 注意：只有 theme 配置成 obsidian 主题才能基本支持这些语法，其他主题会有样式问题或不兼容的情况
-			enablePythonMarkdownAdmonitions: false,
+			enablePythonMarkdownAdmonitions: true,
 		},
 		// 文章页底部的"上次编辑时间"卡片开关
 		showLastModified: true,
@@ -252,7 +252,7 @@ export const siteConfig: SiteConfig = {
 			// 总开关：false 则不显示按钮
 			enable: true,
 			// 进入文章页是否默认开启沉浸阅读
-			defaultOn: true,
+			defaultOn: false,
 			// 沉浸阅读中是否显示目录栏
 			tocEnabled: true,
 			// 目录栏位置："left" | "right"
