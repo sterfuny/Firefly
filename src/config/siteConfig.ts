@@ -84,7 +84,7 @@ export const siteConfig: SiteConfig = {
 		// 是否开启卡片边框和阴影，开启后让网站更有立体感
 		border: false,
 		// 是否让卡片风格跟随主题色相
-		followTheme: false,
+		followTheme: true,
 	},
 
 	// Favicon 配置
@@ -184,7 +184,7 @@ export const siteConfig: SiteConfig = {
 			// 是否显示发布日期
 			showPublished: true,
 			// 是否显示分类
-			showCategory: true,
+			showCategory: false,
 			// 是否显示标签
 			showTags: true,
 			// 标签数量，设为 0 则不限制
