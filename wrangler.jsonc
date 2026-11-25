@@ -1,28 +1,29 @@
 {
-	"name": "firefly-blog",
-	"main": "./worker/worker.js",
-	"compatibility_date": "2026-10-01",
-	"compatibility_flags": ["nodejs_compat"],
-	"assets": {
-		"directory": "./dist"
-	},
-
-	"r2_buckets": [{
-		"binding": "MY_BUCKET", // <~ valid JavaScript variable name
-		"bucket_name": "blog-content"
-	}],
-
-	"queues": {
-		"consumers": [
-			{
-				"queue": "r2-content-build",
-				"max_batch_size": 100, 
-				"max_batch_timeout": 60, // 60秒发一次
-			}
-		]
-	},
-
-	"observability": {
+  "name": "firefly-blog",
+  "main": "./worker/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": "./dist"
+  },
+  "r2_buckets": [
+    {
+      "binding": "MY_BUCKET",
+      "bucket_name": "blog-content"
+    }
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "r2-content-build",
+        "max_batch_size": 100,
+        "max_batch_timeout": 60
+      }
+    ]
+  },
+  "observability": {
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
