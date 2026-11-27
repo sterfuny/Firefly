@@ -34,18 +34,18 @@ export const profileConfig: ProfileConfig = {
 			url: "mailto:sterfu_ny@126.com",
 			showName: false,
 		},
-    {
-      name: "osu!",
-      icon: "simple-icons:osu",
-      url: "https://osu.ppy.sh/users/sterfuny",
+		{
+			name: "osu!",
+			icon: "simple-icons:osu",
+			url: "https://osu.ppy.sh/users/sterfuny",
 			showName: false,
-    },
-    {
-      name: "OKX",
-      icon: "simple-icons:okx",
-      url: "https://oyidl.co/ul/dNBhKgB",
+		},
+		{
+			name: "OKX",
+			icon: "simple-icons:okx",
+			url: "https://oyidl.co/ul/dNBhKgB",
 			showName: false,
-    },
+		},
 		// {
 		// 	name: "RSS",
 		// 	icon: "fa7-solid:rss",

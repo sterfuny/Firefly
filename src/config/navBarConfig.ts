@@ -115,12 +115,12 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 			// 	external: true,
 			// 	icon: "fa7-brands:gitee",
 			// },
-      {
-        name: "list",
-        url: "https://list.msterf.dpdns.org",
-        external: true,
-        icon: "fa8-brands",
-      },
+			{
+				name: "list",
+				url: "https://list.msterf.dpdns.org",
+				external: true,
+				icon: "selfhst:openlist-light",
+			},
 			{
 				name: "Firefly文档",
 				url: "https://docs-firefly.cuteleaf.cn",
