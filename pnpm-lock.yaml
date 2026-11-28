@@ -59,6 +59,9 @@ importers:
       '@iconify-json/mingcute':
         specifier: ^1.2.8
         version: 1.2.8
+      '@iconify-json/selfhst':
+        specifier: ^1.2.34
+        version: 1.2.34
       '@iconify-json/simple-icons':
         specifier: ^1.2.95
         version: 1.2.95
@@ -1745,6 +1748,9 @@ packages:
 
   '@iconify-json/mingcute@1.2.8':
     resolution: {integrity: sha512-J8VXpRwTpx5yzOzyhx3T4IXnfXIKTWFl3rZ9okcW4c+NMMuwkLvdmM4rkjB83tnYIhg5+kkeMpmw8tvSnxd4rQ==}
+
+  '@iconify-json/selfhst@1.2.34':
+    resolution: {integrity: sha512-eDZereuqQr7d/arpHErtt9/SqYNxGBfiDvs3PaH4FJlvebL7mxgWbRj7Lj4pWZWYtR7A0UQa3FzU7AweofvH7g==}
 
   '@iconify-json/simple-icons@1.2.95':
     resolution: {integrity: sha512-QwWgcoiL+eNCD38QM0OStFVFoOgDvzeHrcwMAvATvcFl0VvMEtED92qp3K3juS0H6RZ9BGUlgq9mODPwNWkjJg==}
@@ -8212,6 +8218,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-json/mingcute@1.2.8':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/selfhst@1.2.34':
     dependencies:
       '@iconify/types': 2.0.0
 
